@@ -19,7 +19,53 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
+	"os"
+	"strings"
+	"sync"
+	"unicode"
 )
 
-func main() {}
+type Letters struct {
+	totalLetters int
+	sync.Mutex
+}
+
+var wg sync.WaitGroup
+
+func countLetters(text string, waitgroup *sync.WaitGroup, letters *Letters) {
+	letters.Lock()
+	defer waitgroup.Done()
+	defer letters.Unlock()
+	sum := 0
+	for i := 0; i < len(text); i++ {
+		if unicode.IsLetter(rune(text[i])) {
+			sum += 1
+		}
+	}
+	letters.totalLetters += sum
+}
+
+func main() {
+
+	reader := bufio.NewReader(os.Stdin)
+
+	input, err := reader.ReadString('\n')
+	if err != nil {
+		panic(err)
+	}
+
+	n := strings.TrimSpace(input)
+
+	brokenString := strings.Split(n, " ")
+	totalLetters := Letters{}
+
+	for i := 0; i < len(brokenString); i++ {
+		wg.Add(1)
+		go countLetters(brokenString[i], &wg, &totalLetters)
+	}
+	wg.Wait()
+
+	fmt.Println("Total letters are:", totalLetters.totalLetters)
+}
